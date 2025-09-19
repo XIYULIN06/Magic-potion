@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>magic-potion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 700;
+            background: #2c3e50;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .game-container {
+            position: relative;
+            width: 1344px;
+            height: 768px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform-origin: center;
+            overflow: hidden;
+        }
+
+        /* 彩虹桥样式 */
+        .rainbow-bridge {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 40px;
+            display: flex;
+            z-index: 15;
+            background: #2c3e50;
+            border: 3px solid #34495e;
+            border-radius: 20px;
+            box-shadow: 
+                inset 0 2px 4px rgba(0,0,0,0.3),
+                0 4px 8px rgba(0,0,0,0.2);
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .rainbow-segment {
+            flex: 1;
+            height: 100%;
+            background: #2c3e50;
+            border-right: 2px solid #34495e;
+            transition: all 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rainbow-segment:last-child {
+            border-right: none;
+        }
+
+        .rainbow-segment.active {
+            animation: rainbow-glow 2s ease-in-out;
+        }
+
+        .rainbow-segment[data-color="red"].active {
+            background: linear-gradient(45deg, #ff0000, #ff4444);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(255,0,0,0.5);
+        }
+
+        .rainbow-segment[data-color="orange"].active {
+            background: linear-gradient(45deg, #ff8800, #ffaa44);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(255,136,0,0.5);
+        }
+
+        .rainbow-segment[data-color="yellow"].active {
+            background: linear-gradient(45deg, #ffff00, #ffff44);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(255,255,0,0.5);
+        }
+
+        .rainbow-segment[data-color="green"].active {
+            background: linear-gradient(45deg, #00ff00, #44ff44);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(0,255,0,0.5);
+        }
+
+        .rainbow-segment[data-color="blue"].active {
+            background: linear-gradient(45deg, #0088ff, #44aaff);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(0,136,255,0.5);
+        }
+
+        .rainbow-segment[data-color="indigo"].active {
+            background: linear-gradient(45deg, #4400ff, #6644ff);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(68,0,255,0.5);
+        }
+
+        .rainbow-segment[data-color="violet"].active {
+            background: linear-gradient(45deg, #8800ff, #aa44ff);
+            box-shadow: 
+                inset 0 2px 4px rgba(255,255,255,0.3),
+                0 0 10px rgba(136,0,255,0.5);
+        }
+
+        @keyframes rainbow-glow {
+            0% { 
+                transform: scale(1);
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.05);
+                filter: brightness(1.3);
+            }
+            100% { 
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        /* 彩虹桥完成时的特效 */
+        .rainbow-bridge.completed {
+            animation: rainbow-complete 3s ease-in-out;
+        }
+
+        @keyframes rainbow-complete {
+            0% { 
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1);
+            }
+            25% { 
+                transform: translateX(-50%) scale(1.1);
+                filter: brightness(1.5) hue-rotate(0deg);
+            }
+            50% { 
+                transform: translateX(-50%) scale(1.2);
+                filter: brightness(2) hue-rotate(180deg);
+            }
+            75% { 
+                transform: translateX(-50%) scale(1.1);
+                filter: brightness(1.5) hue-rotate(360deg);
+            }
+            100% { 
+                transform: translateX(-50%) scale(1);
+                filter: brightness(1) hue-rotate(0deg);
+            }
+        }
+
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            /* 优化视频循环播放和补帧 */
+            transition: opacity 0.1s ease-in-out;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            /* 硬件加速 */
+            transform: translateZ(0);
+            will-change: transform;
+            /* 平滑播放 */
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        .video-background::-webkit-media-controls {
+            display: none !important;
+        }
+
+         .video-background::-webkit-media-controls-panel {
+             display: none !important;
+         }
+
+         /* 道具按钮区域 - 左上角 */
+         .powerup-container {
+             position: absolute;
+             top: 20px;
+             left: 20px;
+             width: 200px;
+             height: 60px;
+             z-index: 10;
+             background: white;
+             border-radius: 25px;
+             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+         }
+
+         /* From Uiverse.io by Codecite */
+         .powerup-btn {
+             --fancy-button-gradient-0: #8d49fd;
+             --fancy-button-gradient-50: #7f56f3;
+             --fancy-button-gradient-100: #5691f3;
+             --fancy-button-inner-shadow-top: rgba(233, 209, 255, 0.2);
+             --fancy-button-inner-shadow-top-lg: rgba(9, 12, 60, 0.1);
+             --fancy-button-inner-shadow-bottom: rgba(137, 222, 246, 0.3);
+             --fancy-button-shine-top: #e9d1ff;
+             --fancy-button-shine-bottom: #adfff9;
+             font-weight: 700;
+             font-size: 15px;
+             line-height: 21px;
+             text-shadow: 0px 0.5px 0.5px rgba(0, 0, 0, 0.2);
+             padding: 0;
+             margin: 0;
+             appearance: none;
+             border: none;
+             outline: none;
+             overflow: hidden;
+             position: relative;
+             cursor: pointer;
+             z-index: 1;
+             border-radius: 25px;
+             color: #fff;
+             background-image: linear-gradient(
+               to bottom,
+               var(--fancy-button-gradient-0) 0%,
+               var(--fancy-button-gradient-50) 50%,
+               var(--fancy-button-gradient-100) 100%
+             );
+             box-shadow:
+               0px 4px 12px rgba(9, 12, 60, 0.15),
+               0px 2px 8px rgba(9, 12, 60, 0.15),
+               0px 1px 3px var(--fancy-button-inner-shadow-top-lg),
+               inset 0px 1px 1px var(--fancy-button-inner-shadow-top),
+               inset 0px -1px 3px var(--fancy-button-inner-shadow-bottom);
+             width: 100%;
+             height: 100%;
+             font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+             font-weight: 700;
+             font-size: 14px;
+         }
+
+         .powerup-btn:before,
+         .powerup-btn:after {
+             content: "";
+             position: absolute;
+             border-radius: inherit;
+             will-change: transform;
+         }
+
+         .powerup-btn:before {
+             left: 50%;
+             transform: translateX(-50%);
+             background-color: var(--fancy-button-shine-top);
+             width: 96px;
+             height: 6px;
+             top: -3px;
+             opacity: 0.6;
+             filter: blur(6px);
+             transition: opacity 0.25s;
+         }
+
+         .powerup-btn:after {
+             inset: 0;
+             background-size: cover;
+             z-index: 2;
+             opacity: 0.3;
+             mix-blend-mode: overlay;
+             pointer-events: none;
+         }
+
+         .powerup-btn span {
+             display: block;
+             padding: 12px 24px;
+             border-radius: inherit;
+             overflow: hidden;
+             position: relative;
+             background-image: linear-gradient(
+               to bottom,
+               var(--fancy-button-shine-top),
+               transparent 8px
+             );
+             background-position: 0 -6px;
+             background-repeat: no-repeat;
+             z-index: 1;
+         }
+
+         .powerup-btn span:before,
+         .powerup-btn span:after {
+             content: "";
+             position: absolute;
+             left: 50%;
+             transform: translateX(-50%);
+             border-radius: 50%;
+             background-color: var(--fancy-button-shine-bottom);
+             transition:
+               opacity 0.25s,
+               transform 0.25s;
+             will-change: transform;
+         }
+
+         .powerup-btn span:before {
+             width: 92px;
+             height: 8px;
+             bottom: -4px;
+             opacity: 0.75;
+             filter: blur(6px);
+         }
+
+         .powerup-btn span:after {
+             width: 112px;
+             height: 1px;
+             bottom: 0;
+             opacity: 0.9;
+             filter: blur(1px);
+         }
+
+         .powerup-btn:hover span:before {
+             opacity: 0.8;
+         }
+
+         .powerup-btn:hover span:before {
+             transform: translateX(-50%) scale(1.25);
+         }
+
+         .powerup-btn:hover span:after {
+             opacity: 1;
+         }
+
+         .powerup-disabled {
+             opacity: 0.5;
+             cursor: not-allowed;
+         }
+
+         .powerup-disabled:hover {
+             background: initial;
+             color: initial;
+         }
+
+         /* 响应式适配 - 等比缩放不裁剪 */
+        @media (max-width: 1344px), (max-height: 768px) {
+            .game-container {
+                transform: scale(min(100vw / 1344, 100vh / 768));
+                transform-origin: center center;
+            }
+        }
+
+        /* 确保游戏容器始终居中且不超出视口 */
+        .game-container {
+            flex-shrink: 0;
+        }
+
+         /* 倒计时区域 - 魔法按钮风格 */
+         .countdown-container {
+             position: absolute;
+             top: 20px;
+             right: 20px;
+             width: 200px;
+             height: 60px;
+             z-index: 10;
+         }
+
+         .countdown-bg {
+             --h-button: 60px;
+             --w-button: 200px;
+             --round: 0.75rem;
+             cursor: pointer;
+             position: relative;
+             display: inline-flex;
+             align-items: center;
+             justify-content: center;
+             overflow: hidden;
+             transition: all 0.25s ease;
+             background: radial-gradient(
+                 65.28% 65.28% at 50% 100%,
+                 rgba(223, 113, 255, 0.8) 0%,
+                 rgba(223, 113, 255, 0) 100%
+               ),
+               linear-gradient(0deg, #7a5af8, #7a5af8);
+             border-radius: var(--round);
+             border: none;
+             outline: none;
+             padding: 12px 18px;
+             width: 100%;
+             height: 100%;
+         }
+
+         .countdown-bg::before,
+         .countdown-bg::after {
+             content: "";
+             position: absolute;
+             inset: var(--space);
+             transition: all 0.5s ease-in-out;
+             border-radius: calc(var(--round) - var(--space));
+             z-index: 0;
+         }
+
+         .countdown-bg::before {
+             --space: 1px;
+             background: linear-gradient(
+               177.95deg,
+               rgba(255, 255, 255, 0.19) 0%,
+               rgba(255, 255, 255, 0) 100%
+             );
+         }
+
+         .countdown-bg::after {
+             --space: 2px;
+             background: radial-gradient(
+                 65.28% 65.28% at 50% 100%,
+                 rgba(223, 113, 255, 0.8) 0%,
+                 rgba(223, 113, 255, 0) 100%
+               ),
+               linear-gradient(0deg, #7a5af8, #7a5af8);
+         }
+
+         .countdown-label {
+             position: absolute;
+             top: 8px;
+             left: 15px;
+             font-size: 14px;
+             color: #fff;
+             font-weight: 700;
+             font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+             font-weight: 700;
+             z-index: 2;
+         }
+
+         .countdown-display {
+             position: absolute;
+             top: 50%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             font-size: 20px;
+             font-weight: 700;
+             color: #fff;
+             font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+             font-weight: 700;
+             z-index: 2;
+         }
+
+         .countdown-display.warning {
+             color: #ff9800;
+             animation: pulse-warning 1s infinite;
+         }
+
+         .countdown-display.danger {
+             color: #f44336;
+             animation: pulse-danger 0.5s infinite;
+         }
+
+         @keyframes pulse-warning {
+             0%, 100% { transform: translate(-50%, -50%) scale(1); }
+             50% { transform: translate(-50%, -50%) scale(1.1); }
+         }
+
+         @keyframes pulse-danger {
+             0%, 100% { transform: translate(-50%, -50%) scale(1); }
+             50% { transform: translate(-50%, -50%) scale(1.2); }
+         }
+
+         /* 重开提示 */
+         .restart-hint {
+             position: absolute;
+             bottom: 20px;
+             right: 120px;
+             z-index: 10;
+             background: rgba(0, 0, 0, 0.8);
+             color: #ffd700;
+             padding: 8px 16px;
+             border-radius: 20px;
+             font-size: 14px;
+             font-weight: 700;
+             font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+             border: 2px solid #ffd700;
+             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+             opacity: 0;
+             transform: translateX(20px);
+             transition: all 0.3s ease;
+             pointer-events: none;
+         }
+
+         .restart-hint.show {
+             opacity: 1;
+             transform: translateX(0);
+         }
+
+         /* 暂停按钮 - 魔法按钮风格 */
+         .pause-container {
+             position: absolute;
+             bottom: 20px;
+             right: 20px;
+             z-index: 10;
+         }
+
+         /* From Uiverse.io by Codecite */
+         .btn {
+             --fancy-button-gradient-0: #8d49fd;
+             --fancy-button-gradient-50: #7f56f3;
+             --fancy-button-gradient-100: #5691f3;
+             --fancy-button-inner-shadow-top: rgba(233, 209, 255, 0.2);
+             --fancy-button-inner-shadow-top-lg: rgba(9, 12, 60, 0.1);
+             --fancy-button-inner-shadow-bottom: rgba(137, 222, 246, 0.3);
+             --fancy-button-shine-top: #e9d1ff;
+             --fancy-button-shine-bottom: #adfff9;
+             font-weight: 700;
+             font-size: 15px;
+             line-height: 21px;
+             text-shadow: 0px 0.5px 0.5px rgba(0, 0, 0, 0.2);
+             padding: 0;
+             margin: 0;
+             appearance: none;
+             border: none;
+             outline: none;
+             overflow: hidden;
+             position: relative;
+             cursor: pointer;
+             z-index: 1;
+             border-radius: 25px;
+             color: #fff;
+             background-image: linear-gradient(
+               to bottom,
+               var(--fancy-button-gradient-0) 0%,
+               var(--fancy-button-gradient-50) 50%,
+               var(--fancy-button-gradient-100) 100%
+             );
+             box-shadow:
+               0px 4px 12px rgba(9, 12, 60, 0.15),
+               0px 2px 8px rgba(9, 12, 60, 0.15),
+               0px 1px 3px var(--fancy-button-inner-shadow-top-lg),
+               inset 0px 1px 1px var(--fancy-button-inner-shadow-top),
+               inset 0px -1px 3px var(--fancy-button-inner-shadow-bottom);
+         }
+
+         .btn:before,
+         .btn:after {
+             content: "";
+             position: absolute;
+             border-radius: inherit;
+             will-change: transform;
+         }
+
+         .btn:before {
+             left: 50%;
+             transform: translateX(-50%);
+             background-color: var(--fancy-button-shine-top);
+             width: 96px;
+             height: 6px;
+             top: -3px;
+             opacity: 0.6;
+             filter: blur(6px);
+             transition: opacity 0.25s;
+         }
+
+         .btn:after {
+             inset: 0;
+             background-size: cover;
+             z-index: 2;
+             opacity: 0.3;
+             mix-blend-mode: overlay;
+             pointer-events: none;
+         }
+
+         .btn span {
+             display: block;
+             padding: 12px 24px;
+             border-radius: inherit;
+             overflow: hidden;
+             position: relative;
+             background-image: linear-gradient(
+               to bottom,
+               var(--fancy-button-shine-top),
+               transparent 8px
+             );
+             background-position: 0 -6px;
+             background-repeat: no-repeat;
+             z-index: 1;
+         }
+
+         .btn span:before,
+         .btn span:after {
+             content: "";
+             position: absolute;
+             left: 50%;
+             transform: translateX(-50%);
+             border-radius: 50%;
+             background-color: var(--fancy-button-shine-bottom);
+             transition:
+               opacity 0.25s,
+               transform 0.25s;
+             will-change: transform;
+         }
+
+         .btn span:before {
+             width: 92px;
+             height: 8px;
+             bottom: -4px;
+             opacity: 0.75;
+             filter: blur(6px);
+         }
+
+         .btn span:after {
+             width: 112px;
+             height: 1px;
+             bottom: 0;
+             opacity: 0.9;
+             filter: blur(1px);
+         }
+
+         .btn:hover span:before {
+             opacity: 0.8;
+         }
+
+         .btn:hover span:before {
+             transform: translateX(-50%) scale(1.25);
+         }
+
+         .btn:hover span:after {
+             opacity: 1;
+         }
+
+        /* 游戏指南 - 移动到蓝框位置 */
+        .game-guide {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 20px;
+            border: 4px solid #2c3e50;
+            border-radius: 12px;
+            width: 350px;
+            z-index: 10;
+            box-shadow: 
+                inset 3px 3px 0 #7f8c8d,
+                inset -3px -3px 0 #2c3e50,
+                0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .game-guide h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #f39c12;
+            text-shadow: 2px 2px 0 #2c3e50;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .game-guide ol {
+            margin-left: 0;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .game-guide li {
+            margin-bottom: 12px;
+            font-size: 16px;
+            line-height: 1.6;
+            text-shadow: 2px 2px 0 #2c3e50;
+            font-weight: 700;
+            padding: 8px 12px;
+            background: rgba(52, 73, 94, 0.5);
+            border-radius: 6px;
+            border-left: 4px solid #f39c12;
+        }
+
+         /* 瓶子容器 - 移动到桌子上 */
+         .bottles-container {
+             position: absolute;
+             bottom: 20px;
+             left: 50%;
+             transform: translateX(-50%);
+             display: flex;
+             gap: 20px;
+             align-items: flex-end;
+             justify-content: center;
+         }
+
+         .bottle {
+             position: relative;
+             width: 240px;
+             height: 360px;
+             cursor: pointer;
+             transition: all 0.3s ease;
+             background: url('img_bottle.png') center/contain no-repeat;
+             image-rendering: pixelated;
+             image-rendering: -moz-crisp-edges;
+             image-rendering: crisp-edges;
+         }
+
+        .bottle:hover {
+            transform: scale(1.05) translateY(-4px);
+        }
+
+         .bottle.selected {
+             transform: scale(1.1) translateY(-6px);
+             filter: drop-shadow(0 0 20px #ffd700) brightness(1.2);
+             animation: magic-pulse 1s infinite;
+         }
+
+         @keyframes magic-pulse {
+             0% { 
+                 filter: drop-shadow(0 0 20px #ffd700) brightness(1.2) hue-rotate(0deg);
+             }
+             50% { 
+                 filter: drop-shadow(0 0 30px #ffd700) brightness(1.3) hue-rotate(20deg);
+             }
+             100% { 
+                 filter: drop-shadow(0 0 20px #ffd700) brightness(1.2) hue-rotate(0deg);
+             }
+         }
+
+         .bottle-content {
+             position: absolute;
+             bottom: 40px;
+             left: 80px;
+             right: 60px;
+             top: 100px;
+             border-radius: 0 0 12px 12px;
+             transition: all 0.5s ease;
+             background: transparent;
+             overflow: hidden;
+         }
+
+        .bottle-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.6) 20%, 
+                rgba(255,255,255,0.8) 50%, 
+                rgba(255,255,255,0.6) 80%, 
+                transparent 100%);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .pour-animation {
+            animation: pour 0.5s ease-out;
+        }
+
+        @keyframes pour {
+            0% { transform: scaleY(1); }
+            50% { transform: scaleY(0.8); }
+            100% { transform: scaleY(1); }
+        }
+
+        /* 胜利和失败消息 */
+        .victory-message, .game-over-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 700;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .victory-message {
+            color: #4CAF50;
+            border: 3px solid #4CAF50;
+        }
+
+        .game-over-message {
+            color: #f44336;
+            border: 3px solid #f44336;
+        }
+
+        .next-level-btn, .restart-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: background 0.3s ease;
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 700;
+            text-shadow: 2px 2px 0 #2c3e50;
+        }
+
+        .next-level-btn:hover, .restart-btn:hover {
+            background: #45a049;
+        }
+
+        .restart-btn {
+            background: #f44336;
+        }
+
+        .restart-btn:hover {
+            background: #da190b;
+        }
+
+        /* 彩虹桥完成提示 */
+        .rainbow-complete-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #4400ff, #8800ff);
+            background-size: 400% 400%;
+            animation: rainbow-gradient 3s ease infinite;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            display: none;
+            z-index: 2000;
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.5),
+                inset 0 2px 4px rgba(255,255,255,0.3);
+            border: 4px solid #fff;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .rainbow-complete-message h2 {
+            margin-bottom: 20px;
+            font-size: 32px;
+            animation: text-glow 2s ease-in-out infinite alternate;
+        }
+
+        .rainbow-complete-message p {
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+
+        .rainbow-complete-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 25px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .rainbow-complete-btn:hover {
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        /* 魔法药水容器 */
+        .magic-potion-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 魔法药水图片 */
+        .magic-potion-img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            animation: potion-glow 2s ease-in-out infinite alternate;
+            background: transparent;
+            border: none;
+            outline: none;
+            box-shadow: none;
+        }
+
+
+        @keyframes potion-glow {
+            0% { 
+                filter: brightness(1) drop-shadow(0 0 10px rgba(255,215,0,0.5));
+            }
+            100% { 
+                filter: brightness(1.2) drop-shadow(0 0 20px rgba(255,215,0,0.8)) drop-shadow(0 0 30px rgba(255,107,53,0.6));
+            }
+        }
+
+        @keyframes potion-shimmer {
+            0% { 
+                transform: translateX(-50%) translateY(-10px);
+                opacity: 0;
+            }
+            50% { 
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            100% { 
+                transform: translateX(-50%) translateY(10px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes potion-appear {
+            0% { 
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% { 
+                transform: scale(1.2) rotate(-90deg);
+                opacity: 0.8;
+            }
+            100% { 
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes rainbow-gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes text-glow {
+            0% { 
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.5);
+            }
+            100% { 
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.8);
+            }
+        }
+
+        /* 粒子效果 */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: currentColor;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle-fall 1s ease-out forwards;
+        }
+
+        @keyframes particle-fall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(50px) scale(0.5);
+            }
+        }
+
+        /* 开场视频遮罩 */
+        .intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .intro-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .intro-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .intro-video::-webkit-media-controls {
+            display: none !important;
+        }
+
+        .intro-video::-webkit-media-controls-panel {
+            display: none !important;
+        }
+
+        /* 暂停遮罩 */
+        .pause-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+        }
+
+        .pause-menu {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .pause-menu h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            text-shadow: 2px 2px 0 #ccc;
+        }
+
+         .pause-buttons {
+             display: flex;
+             flex-direction: column;
+             align-items: center;
+             gap: 15px;
+         }
+
+         .pause-menu button {
+             padding: 12px 24px;
+             font-size: 12px;
+             border: none;
+             border-radius: 8px;
+             cursor: pointer;
+             transition: background 0.3s ease;
+             font-family: 'Noto Sans SC', 'Source Han Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+             font-weight: 700;
+             font-weight: 700;
+             text-shadow: 2px 2px 0 #2c3e50;
+             min-width: 120px;
+         }
+
+        .resume-game-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .resume-game-btn:hover {
+            background: #45a049;
+        }
+
+        .restart-game-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .restart-game-btn:hover {
+            background: #f57c00;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 开场视频遮罩 -->
+    <div class="intro-overlay" id="intro-overlay">
+        <video class="intro-video" id="intro-video" autoplay muted playsinline preload="auto" webkit-playsinline>
+            <source src="anime0915.mp4" type="video/mp4">
+            您的浏览器不支持视频播放。
+        </video>
+    </div>
+
+    <div class="game-container">
+        <!-- 彩虹桥 -->
+        <div class="rainbow-bridge" id="rainbow-bridge">
+            <div class="rainbow-segment" data-color="red"></div>
+            <div class="rainbow-segment" data-color="orange"></div>
+            <div class="rainbow-segment" data-color="yellow"></div>
+            <div class="rainbow-segment" data-color="green"></div>
+            <div class="rainbow-segment" data-color="blue"></div>
+            <div class="rainbow-segment" data-color="indigo"></div>
+            <div class="rainbow-segment" data-color="violet"></div>
+        </div>
+
+        <!-- 视频背景 -->
+        <video class="video-background" autoplay muted loop playsinline preload="auto" 
+               webkit-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="true"
+               x5-video-orientation="portraint" disablePictureInPicture>
+            <source src="movie_background.mp4" type="video/mp4">
+            您的浏览器不支持视频播放。
+        </video>
+        
+        <!-- 道具按钮 -->
+        <div class="powerup-container">
+            <button class="powerup-btn powerup-disabled" id="powerup-btn" onclick="usePowerup()">
+                <span id="powerup-text">道具 x0</span>
+            </button>
+        </div>
+
+        <!-- 倒计时 -->
+        <div class="countdown-container">
+            <div class="countdown-bg"></div>
+            <div class="countdown-label">倒计时</div>
+            <div class="countdown-display" id="countdown-display">60</div>
+        </div>
+
+         <!-- 重开提示 -->
+         <div class="restart-hint" id="restart-hint">
+             <span>若此局无解，可点此处重开👉</span>
+         </div>
+
+         <!-- 暂停按钮 -->
+         <div class="pause-container">
+             <button class="btn" id="pause-btn" onclick="togglePause()">
+                 <span>暂停</span>
+             </button>
+         </div>
+
+
+        <!-- 瓶子容器 -->
+        <div class="bottles-container">
+            <div class="bottle" data-bottle="0">
+                <div class="bottle-content" id="content-0"></div>
+            </div>
+            <div class="bottle" data-bottle="1">
+                <div class="bottle-content" id="content-1"></div>
+            </div>
+            <div class="bottle" data-bottle="2">
+                <div class="bottle-content" id="content-2"></div>
+            </div>
+            <div class="bottle" data-bottle="3">
+                <div class="bottle-content" id="content-3"></div>
+            </div>
+        </div>
+
+        <!-- 胜利消息 -->
+        <div class="victory-message" id="victory-message">
+            <div>🎉 恭喜过关！🎉</div>
+            <button class="next-level-btn" onclick="nextLevel()">下一关</button>
+        </div>
+
+        <!-- 失败消息 -->
+        <div class="game-over-message" id="game-over-message">
+            <div>⏰ 时间到！游戏失败！⏰</div>
+            <button class="restart-btn" onclick="restartLevel()">重新开始</button>
+        </div>
+
+         <!-- 暂停菜单 -->
+         <div class="pause-overlay" id="pause-overlay">
+             <div class="pause-menu">
+                 <h2>游戏暂停</h2>
+                 <div class="pause-buttons">
+                     <button class="resume-game-btn" onclick="togglePause()">继续</button>
+                     <button class="restart-game-btn" onclick="restartLevel()">重开</button>
+                 </div>
+             </div>
+         </div>
+
+         <!-- 彩虹桥完成提示 -->
+         <div class="rainbow-complete-message" id="rainbow-complete-message">
+             <h2>🌈 恭喜成功修复彩虹桥！🌈</h2>
+             <p>获得宝藏-天赐圣露！</p>
+             <div class="magic-potion-container">
+                 <img src="img_rainbow.png" alt="天赐圣露" class="magic-potion-img" id="magic-potion-img">
+             </div>
+             <button class="rainbow-complete-btn" onclick="endGame()">结束游戏</button>
+         </div>
+    </div>
+
+    <!-- 背景音乐 -->
+    <audio id="background-music" loop>
+        <source src="music_magical mysteries.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 开场视频音效 -->
+    <audio id="intro-sound" preload="auto">
+        <source src="Untitled.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <script src="game.js"></script>
+    <script>
+        // 高级视频循环播放优化和补帧技术
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.querySelector('.video-background');
+            if (video) {
+                let isLooping = false;
+                let lastTime = 0;
+                let frameCount = 0;
+                let lastFrameTime = 0;
+                
+                // 设置视频属性优化
+                video.defaultPlaybackRate = 1.0;
+                video.playbackRate = 1.0;
+                video.volume = 0;
+                video.muted = true;
+                
+                // 预加载优化
+                video.addEventListener('loadstart', function() {
+                    console.log('视频开始加载');
+                    this.load();
+                });
+                
+                // 视频元数据加载完成
+                video.addEventListener('loadedmetadata', function() {
+                    console.log('视频元数据加载完成，时长:', this.duration);
+                    // 设置播放质量
+                    this.currentTime = 0;
+                });
+                
+                // 视频数据加载完成
+                video.addEventListener('loadeddata', function() {
+                    console.log('视频数据加载完成');
+                    this.play().catch(e => {
+                        console.log('视频自动播放失败，需要用户交互');
+                    });
+                });
+                
+                // 视频可以播放
+                video.addEventListener('canplay', function() {
+                    console.log('视频可以播放');
+                    if (this.paused) {
+                        this.play().catch(e => {
+                            console.log('视频播放失败');
+                        });
+                    }
+                });
+                
+                // 视频可以流畅播放
+                video.addEventListener('canplaythrough', function() {
+                    console.log('视频可以流畅播放');
+                });
+                
+                // 高级循环播放优化
+                video.addEventListener('timeupdate', function() {
+                    const currentTime = this.currentTime;
+                    const duration = this.duration;
+                    
+                    // 帧率监控
+                    frameCount++;
+                    const now = performance.now();
+                    if (now - lastFrameTime >= 1000) {
+                        console.log('视频帧率:', frameCount, 'fps');
+                        frameCount = 0;
+                        lastFrameTime = now;
+                    }
+                    
+                    // 无缝循环检测
+                    if (duration > 0) {
+                        const remainingTime = duration - currentTime;
+                        
+                        // 当接近结束时，提前准备循环
+                        if (remainingTime < 0.2 && !isLooping) {
+                            isLooping = true;
+                            console.log('准备视频循环');
+                            
+                            // 使用 requestAnimationFrame 确保平滑过渡
+                            requestAnimationFrame(() => {
+                                this.currentTime = 0;
+                                isLooping = false;
+                            });
+                        }
+                        
+                        // 防止视频卡在最后一帧
+                        if (remainingTime < 0.05) {
+                            this.currentTime = 0;
+                        }
+                    }
+                });
+                
+                // 视频播放结束事件
+                video.addEventListener('ended', function() {
+                    console.log('视频播放结束，重新开始');
+                    this.currentTime = 0;
+                    this.play().catch(e => {
+                        console.log('视频重新播放失败');
+                    });
+                });
+                
+                // 视频暂停时自动恢复
+                video.addEventListener('pause', function() {
+                    console.log('视频暂停，尝试恢复播放');
+                    setTimeout(() => {
+                        if (this.paused) {
+                            this.play().catch(e => {
+                                console.log('视频恢复播放失败');
+                            });
+                        }
+                    }, 100);
+                });
+                
+                // 视频错误处理
+                video.addEventListener('error', function(e) {
+                    console.error('视频播放错误:', e);
+                    console.error('错误详情:', this.error);
+                });
+                
+                // 视频等待数据
+                video.addEventListener('waiting', function() {
+                    console.log('视频等待数据...');
+                });
+                
+                // 视频开始播放
+                video.addEventListener('play', function() {
+                    console.log('视频开始播放');
+                });
+                
+                // 页面可见性变化时保持播放
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden && video.paused) {
+                        video.play().catch(e => {
+                            console.log('页面重新可见时视频播放失败');
+                        });
+                    }
+                });
+                
+                // 窗口失去焦点时暂停，获得焦点时恢复
+                window.addEventListener('blur', function() {
+                    if (!video.paused) {
+                        video.pause();
+                    }
+                });
+                
+                window.addEventListener('focus', function() {
+                    if (video.paused) {
+                        video.play().catch(e => {
+                            console.log('窗口获得焦点时视频播放失败');
+                        });
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
